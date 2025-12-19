@@ -1,78 +1,243 @@
 import { MatchResult } from "@/types/match";
 import { ResumeProfile } from "@/types/resume";
 import { SearchResult } from "./search";
+import { normalizeSkill, extractSkillsFromText } from "./skills";
 
-// Weights for different scoring components
+// ============================================
+// KEYWORD-PRIORITY WEIGHT CONFIGURATION
+// ============================================
+
+// Weights prioritizing KEYWORDS > SKILLS
 const WEIGHTS = {
-  SKILL: 0.40,
-  SEMANTIC: 0.30,
-  EXPERIENCE: 0.15,
-  LOCATION: 0.10,
-  SALARY: 0.05
+  KEYWORD: 0.50,     // PRIMARY - Keywords in title
+  SKILL: 0.35,       // SECONDARY - Skills in benefits/requirements
+  SEMANTIC: 0.10,    // TERTIARY - Context matching
+  EXPERIENCE: 0.03,  // MINOR - Experience relevance
+  LOCATION: 0.01,    // MINOR - Location preference
+  SALARY: 0.01       // MINOR - Salary fit
 };
 
+/**
+ * Rank results prioritizing KEYWORDS matching in title, then SKILLS
+ */
 export function rankResults(searchResults: SearchResult[], profile: ResumeProfile): MatchResult[] {
   return searchResults.map(result => {
     const { job, score: semanticScore } = result;
-    
-    // 1. Skill Match
-    const jobText = (job.title + " " + job.description + " " + job.requirements).toLowerCase();
-    const userSkills = profile.skills.map(s => s.toLowerCase());
-    
-    const matchedSkills = userSkills.filter(skill => jobText.includes(skill));
-    const missingSkills = userSkills.filter(skill => !jobText.includes(skill));
-    
-    const skillScore = userSkills.length > 0 
-      ? matchedSkills.length / userSkills.length 
-      : 0;
 
-    // 2. Experience Match (Simple keyword matching in title)
-    // In a real system, this would be more sophisticated
+    // ========== PRIORITY 1: KEYWORD MATCH IN TITLE (50%) ==========
+    const keywordScore = calculateKeywordScore(
+      profile.keywords || [],
+      job.title
+    );
+
+    // ========== PRIORITY 2: SKILL MATCH (35%) ==========
+    const skillResult = calculateSkillScore(
+      profile.skills,
+      job
+    );
+
+    // ========== PRIORITY 3: EXPERIENCE MATCH (3%) ==========
     let experienceScore = 0;
-    const hasRoleMatch = profile.experience.some(exp => 
-      job.title.toLowerCase().includes(exp.title.toLowerCase()) || 
+    const hasRoleMatch = profile.experience.some(exp =>
+      job.title.toLowerCase().includes(exp.title.toLowerCase()) ||
       exp.title.toLowerCase().includes(job.title.toLowerCase())
     );
     if (hasRoleMatch) experienceScore = 1;
 
-    // 3. Location Match
-    const locationMatch = profile.preferredLocations.some(loc => 
-      job.location.includes(loc) || loc === "Any"
-    ) || job.location.includes("ไม่ระบุ"); // Give benefit of doubt
-
+    // ========== PRIORITY 4: LOCATION MATCH (1%) ==========
+    const locationMatch = (profile.preferredLocations?.length ?? 0) === 0 ||
+      profile.preferredLocations?.some(loc =>
+        job.location.includes(loc) || loc === "Any"
+      ) ||
+      job.location.includes("ไม่ระบุ");
     const locationScore = locationMatch ? 1 : 0;
 
-    // 4. Salary Match (Parsing would be needed for real logic, simple check here)
-    // Assume match if not specified or simple text match
-    const salaryMatch = profile.expectedSalary 
-      ? job.salary.includes(profile.expectedSalary) || job.salary.includes("ตามตกลง") || job.salary.includes("โครงสร้างบริษัท")
-      : true;
-    
+    // ========== PRIORITY 5: SALARY MATCH (1%) ==========
+    const salaryMatch = !profile.expectedSalary ||
+      job.salary.includes(profile.expectedSalary) ||
+      job.salary.includes("ตามตกลง") ||
+      job.salary.includes("โครงสร้างบริษัท");
     const salaryScore = salaryMatch ? 1 : 0;
 
-    // Calculate Overall Score
+    // ========== FINAL SCORE CALCULATION ==========
     const overallScore = (
-      (skillScore * WEIGHTS.SKILL) +
+      (keywordScore * WEIGHTS.KEYWORD) +
+      (skillResult.score * WEIGHTS.SKILL) +
       (semanticScore * WEIGHTS.SEMANTIC) +
       (experienceScore * WEIGHTS.EXPERIENCE) +
       (locationScore * WEIGHTS.LOCATION) +
       (salaryScore * WEIGHTS.SALARY)
     ) * 100; // Convert to 0-100
 
-    // Generate Reasoning
-    const reasoning = `Matches ${matchedSkills.length} skills. ${locationMatch ? "Location matches." : ""} ${hasRoleMatch ? "Experience aligns." : ""}`;
+    // Generate reasoning focused on keywords and skills
+    const keywordCount = calculateKeywordMatches(profile.keywords || [], job.title);
+    const skillCount = skillResult.matchedSkills.length;
+    const totalSkills = skillResult.totalJobSkills;
+
+    const reasoning = [
+      keywordCount > 0 ? `พบคีย์เวิร์ดตรงกัน ${keywordCount}/${(profile.keywords || []).length} คำใน title` : null,
+      skillCount > 0 ? `พบทักษะตรงกัน ${skillCount}/${totalSkills} รายการ (${Math.round(skillResult.precision * 100)}%)` : null,
+      locationMatch ? "สถานที่ตรงกับต้องการ" : null,
+      hasRoleMatch ? "ประสบการณ์สอดคล้อง" : null
+    ].filter(Boolean).join(" • ") || "พบความเหมาะสมในระดับพื้นฐาน";
 
     return {
       job,
       overallScore: Math.round(overallScore),
-      skillMatch: Math.round(skillScore * 100),
+      skillMatch: Math.round(skillResult.score * 100),
       semanticMatch: Math.round(semanticScore * 100),
       experienceMatch: Math.round(experienceScore * 100),
       locationMatch,
       salaryMatch,
-      matchedSkills: profile.skills.filter(s => matchedSkills.includes(s.toLowerCase())), // Restore original case if possible, here using user's list
-      missingSkills: profile.skills.filter(s => missingSkills.includes(s.toLowerCase())),
-      reasoning: reasoning.trim()
+      matchedSkills: skillResult.matchedSkills,
+      missingSkills: skillResult.missingSkills,
+      reasoning
     };
   }).sort((a, b) => b.overallScore - a.overallScore);
+}
+
+/**
+ * Calculate keyword matching score in job title
+ * - Exact match = คะแนนสูง
+ * - Partial match = คะแนนกลาง
+ * - No match = คะแนนต่ำ
+ */
+function calculateKeywordScore(keywords: string[], jobTitle: string): number {
+  if (keywords.length === 0) return 0.5; // Neutral if no keywords
+
+  const title = jobTitle.toLowerCase();
+  let totalScore = 0;
+
+  for (const keyword of keywords) {
+    const kw = keyword.toLowerCase().trim();
+
+    // Exact word match (คำตรงทั้งคำ)
+    const exactRegex = new RegExp(`\\b${escapeRegex(kw)}\\b`, 'i');
+    if (exactRegex.test(title)) {
+      totalScore += 1.0; // Full score
+      continue;
+    }
+
+    // Partial match (มีคำบางส่วน)
+    if (title.includes(kw)) {
+      totalScore += 0.5; // Half score
+      continue;
+    }
+
+    // Fuzzy match (คำใกล้เคียง)
+    const words = title.split(/\s+/);
+    for (const word of words) {
+      if (calculateSimpleSimilarity(kw, word) > 0.7) {
+        totalScore += 0.3;
+        break;
+      }
+    }
+  }
+
+  return totalScore / keywords.length;
+}
+
+/**
+ * Calculate skill matching score
+ * Search in benefits (primary), then requirements/description (secondary)
+ */
+function calculateSkillScore(
+  userSkills: string[],
+  job: any
+): {
+  score: number;
+  matchedSkills: string[];
+  missingSkills: string[];
+  precision: number;
+  totalJobSkills: number;
+} {
+  const normalizedUserSkills = userSkills.map(normalizeSkill);
+
+  // Extract skills from job fields with priority
+  const benefitsText = job.benefits?.toLowerCase() || "";
+  const requirementsText = job.requirements?.toLowerCase() || "";
+  const descriptionText = job.description?.toLowerCase() || "";
+  const titleText = job.title?.toLowerCase() || "";
+
+  const benefitsSkills = extractSkillsFromText(benefitsText);
+  const otherSkills = extractSkillsFromText(
+    `${requirementsText} ${descriptionText} ${titleText}`
+  );
+
+  // Count matches with priority weighting
+  const matchedInBenefits: string[] = [];
+  const matchedInOther: string[] = [];
+  let totalScore = 0;
+
+  for (const userSkill of normalizedUserSkills) {
+    if (benefitsSkills.includes(userSkill)) {
+      matchedInBenefits.push(userSkill);
+      totalScore += 1.0; // Full score for benefits
+    } else if (otherSkills.includes(userSkill)) {
+      matchedInOther.push(userSkill);
+      totalScore += 0.6; // Reduced for other fields
+    }
+  }
+
+  const matchedSkills = [...matchedInBenefits, ...matchedInOther];
+  const allJobSkills = [...new Set([...benefitsSkills, ...otherSkills])];
+  const missingSkills = allJobSkills.filter(js => !normalizedUserSkills.includes(js));
+
+  // Precision: how many job requirements does user have?
+  const precision = allJobSkills.length > 0
+    ? matchedSkills.length / allJobSkills.length
+    : 0;
+
+  // Recall: how many user skills does job need?
+  const recall = normalizedUserSkills.length > 0
+    ? totalScore / normalizedUserSkills.length
+    : 0;
+
+  // Combined score (favor precision)
+  const score = (precision * 0.6) + (recall * 0.4);
+
+  return {
+    score,
+    matchedSkills,
+    missingSkills,
+    precision,
+    totalJobSkills: allJobSkills.length
+  };
+}
+
+/**
+ * Count keyword matches in title
+ */
+function calculateKeywordMatches(keywords: string[], jobTitle: string): number {
+  const title = jobTitle.toLowerCase();
+  let count = 0;
+
+  for (const keyword of keywords) {
+    const kw = keyword.toLowerCase().trim();
+    if (title.includes(kw)) count++;
+  }
+
+  return count;
+}
+
+/**
+ * Helper: Escape regex special characters
+ */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Helper: Calculate simple string similarity
+ */
+function calculateSimpleSimilarity(str1: string, str2: string): number {
+  if (str1 === str2) return 1;
+  if (str1.length === 0 || str2.length === 0) return 0;
+
+  const set1 = new Set(str1.split(''));
+  const set2 = new Set(str2.split(''));
+  const intersection = new Set([...set1].filter(x => set2.has(x)));
+  const union = new Set([...set1, ...set2]);
+
+  return intersection.size / union.size;
 }
