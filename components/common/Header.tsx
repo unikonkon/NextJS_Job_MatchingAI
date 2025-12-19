@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 
 export function Header() {
@@ -16,6 +17,9 @@ export function Header() {
                     <a href="#" className="text-sm font-medium text-zinc-600 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white">
                         How it works
                     </a>
+                    <Link href="/jobs" className="text-sm font-medium text-zinc-600 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white">
+                        All Jobs
+                    </Link>
                 </nav>
             </div>
         </header>
