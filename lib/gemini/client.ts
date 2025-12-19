@@ -12,7 +12,7 @@ const genAI = new GoogleGenerativeAI(API_KEY || "");
 
 export const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
-export async function analyzeResume(pdfBase64: string): Promise<ResumeProfile> {
+export async function analyzeResume(pdfBase64: string, mimeType: string = "application/pdf"): Promise<ResumeProfile> {
   if (!API_KEY) {
     throw new Error("Gemini API Key is missing");
   }
@@ -25,7 +25,7 @@ export async function analyzeResume(pdfBase64: string): Promise<ResumeProfile> {
       {
         inlineData: {
           data: pdfBase64,
-          mimeType: "application/pdf",
+          mimeType: mimeType,
         },
       },
     ]);

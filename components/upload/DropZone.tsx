@@ -24,6 +24,8 @@ export function DropZone({ onFileSelect, isUploading = false }: DropZoneProps) {
         onDrop,
         accept: {
             "application/pdf": [".pdf"],
+            "image/png": [".png"],
+            "image/jpeg": [".jpg", ".jpeg"],
         },
         maxSize: 10 * 1024 * 1024, // 10MB
         multiple: false,
@@ -51,7 +53,7 @@ export function DropZone({ onFileSelect, isUploading = false }: DropZoneProps) {
                         {isDragActive ? "Drop your resume here" : "Upload your resume"}
                     </h3>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        Drag & drop or click to browse (PDF only, max 10MB)
+                        Drag & drop or click to browse (PDF, PNG, JPG max 10MB)
                     </p>
                 </div>
             </div>

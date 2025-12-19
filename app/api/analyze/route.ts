@@ -13,9 +13,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (file.type !== "application/pdf") {
+    const allowedTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
+    if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: "Only PDF files are allowed" },
+        { error: "Only PDF, PNG, and JPG files are allowed" },
         { status: 400 }
       );
     }
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     const base64 = buffer.toString("base64");
 
     // Analyze with Gemini
-    const profile = await analyzeResume(base64);
+    const profile = await analyzeResume(base64, file.type);
 
     return NextResponse.json({ profile });
   } catch (error) {

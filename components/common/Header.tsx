@@ -17,6 +17,9 @@ export function Header() {
                     <a href="#" className="text-sm font-medium text-zinc-600 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white">
                         How it works
                     </a>
+                    <Link href="/history" className="text-sm font-medium text-zinc-600 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white">
+                        History
+                    </Link>
                     <Link href="/jobs" className="text-sm font-medium text-zinc-600 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white">
                         All Jobs
                     </Link>
