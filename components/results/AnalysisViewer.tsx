@@ -1,6 +1,6 @@
 
 import { ResumeProfile } from "@/types/resume";
-import { BadgeCheck, Brain, Briefcase } from "lucide-react";
+import { BadgeCheck, Brain, Briefcase, Key } from "lucide-react";
 
 interface AnalysisViewerProps {
     profile: ResumeProfile;
@@ -24,7 +24,7 @@ export function AnalysisViewer({ profile }: AnalysisViewerProps) {
 
                 <div>
                     <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                        <span className="inline-block w-4 h-4 rounded-full bg-yellow-400/80 dark:bg-yellow-600/80" />
+                        <Key className="h-4 w-4" />
                         Keywords Analyzed
                     </h3>
                     <div className="flex flex-wrap gap-2">
