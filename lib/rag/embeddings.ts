@@ -1,32 +1,32 @@
-// Hugging Face Inference API for embeddings (Vercel-compatible)
-const HF_API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2";
-const HF_API_KEY = process.env.HUGGINGFACE_API_KEY;
+// Hugging Face Transformers.js for embeddings
+import { pipeline } from '@huggingface/transformers';
+
+// Cache the pipeline to avoid reloading the model
+let extractorPipeline: any = null;
+
+async function getExtractor() {
+  if (!extractorPipeline) {
+    extractorPipeline = await pipeline(
+      'feature-extraction',
+      'Xenova/all-MiniLM-L6-v2'
+    );
+  }
+  return extractorPipeline;
+}
 
 export async function generateEmbedding(text: string): Promise<number[]> {
-  if (!HF_API_KEY) {
-    throw new Error("HUGGINGFACE_API_KEY environment variable is not set");
-  }
+  const extractor = await getExtractor();
 
-  const response = await fetch(HF_API_URL, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${HF_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      inputs: text,
-      options: { wait_for_model: true }
-    }),
+  // Generate embedding with mean pooling and normalization
+  const output = await extractor(text, {
+    pooling: 'mean',
+    normalize: true
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Hugging Face API error: ${response.status} - ${error}`);
-  }
+  // Convert tensor to array
+  const embedding = output.tolist();
 
-  const embedding = await response.json();
-
-  // HF API returns array directly or nested array
+  // Handle nested array structure
   const flatEmbedding = Array.isArray(embedding[0]) ? embedding[0] : embedding;
 
   return flatEmbedding;

@@ -3,20 +3,20 @@ import { ResumeProfile } from "@/types/resume";
 import { searchJobs } from "@/lib/rag/search";
 import { rankResults } from "@/lib/rag/ranking";
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+// export const runtime = 'nodejs';
+// export const dynamic = 'force-dynamic';
 
-// เพิ่ม OPTIONS handler สำหรับ CORS preflight
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
-}
+// // เพิ่ม OPTIONS handler สำหรับ CORS preflight
+// export async function OPTIONS() {
+//   return new NextResponse(null, {
+//     status: 200,
+//     headers: {
+//       'Access-Control-Allow-Origin': '*',
+//       'Access-Control-Allow-Methods': 'POST, OPTIONS',
+//       'Access-Control-Allow-Headers': 'Content-Type',
+//     },
+//   });
+// }
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,14 +39,17 @@ export async function POST(request: NextRequest) {
     // 3. Apply limit
     const finalMatches = matches.slice(0, limit);
 
-    return NextResponse.json(
-      { matches },
-      {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
-    );
+    // return NextResponse.json(
+    //   { matches },
+    //   {
+    //     headers: {
+    //       'Access-Control-Allow-Origin': '*',
+    //     },
+    //   }
+    // );
+    return NextResponse.json({ matches });
+
+  
   } catch (error) {
     console.error("Matching error:", error);
     return NextResponse.json(
