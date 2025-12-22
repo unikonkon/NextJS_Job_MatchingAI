@@ -35,7 +35,7 @@ export default async function JobsPage({
             <main className="container mx-auto px-4 py-8">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">All Jobs
-                        <span className="text-blue-600 dark:text-blue-400"> in jobthai</span>
+                        <span className="text-orange-600 dark:text-orange-400"> in jobthai</span>
                     </h1>
                     <p className="mt-2 text-zinc-600 dark:text-zinc-400">
                         Find your next opportunity from our curated list of positions.

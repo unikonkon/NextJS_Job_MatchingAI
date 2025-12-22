@@ -40,7 +40,7 @@ export default async function Home() {
           <div className="container mx-auto px-4">
             <div className="mb-12 text-center">
               <h2 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
-                Latest Job Openings <span className="text-blue-600 dark:text-blue-400">in jobthai</span>
+                Latest Job Openings <span className="text-orange-600 dark:text-orange-400">in jobthai</span>
               </h2>
               <p className="mt-4 text-lg text-zinc-600 dark:text-zinc-400">
                 Browse the most recent opportunities added to our platform.

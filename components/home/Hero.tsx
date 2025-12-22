@@ -10,6 +10,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { ResumeProfile } from "@/types/resume";
 import { saveProfile } from "@/lib/db";
 import { ShineBorder } from "@/components/ui/shine-border";
+import { Highlighter } from "@/components/ui/highlighter";
 
 import { AnalysisViewer } from "@/components/results/AnalysisViewer";
 
@@ -126,7 +127,12 @@ export function Hero() {
         <div className="flex flex-col items-center justify-center py-20 min-h-[calc(100vh-64px)]">
             <div className="text-center space-y-6 max-w-2xl mx-auto mb-16">
                 <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-6xl">
-                    Find your dream job with <span className="text-blue-600 dark:text-blue-400">AI Precision</span>
+                    Find your dream job with
+                    <Highlighter action="underline" color="#3b82f6" strokeWidth={2} animationDuration={800} isView={true}>
+                        <span className="text-blue-600 dark:text-blue-400">
+                            &nbsp;AI 
+                        </span>
+                    </Highlighter>
                 </h1>
                 <p className="text-lg text-zinc-600 dark:text-zinc-400">
                     Upload your resume and let our Gemini AI analyze your skills to find the perfect matches from thousands of job listings.
