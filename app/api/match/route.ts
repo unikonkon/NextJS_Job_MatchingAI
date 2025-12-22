@@ -6,9 +6,21 @@ import { rankResults } from "@/lib/rag/ranking";
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: NextRequest) {
+// เพิ่ม OPTIONS handler สำหรับ CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
+
+export async function POST(request: NextRequest) {
   try {
-    const body = await req.json();
+    const body = await request.json();
     const { profile, limit = 20 } = body;
 
     if (!profile) {
@@ -27,7 +39,14 @@ export async function POST(req: NextRequest) {
     // 3. Apply limit
     const finalMatches = matches.slice(0, limit);
 
-    return NextResponse.json({ matches });
+    return NextResponse.json(
+      { matches },
+      {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        },
+      }
+    );
   } catch (error) {
     console.error("Matching error:", error);
     return NextResponse.json(
