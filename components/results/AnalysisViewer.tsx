@@ -7,6 +7,7 @@ interface AnalysisViewerProps {
 }
 
 export function AnalysisViewer({ profile }: AnalysisViewerProps) {
+    console.log("AnalysisViewer profile", profile);
     return (
         <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900/50">
             <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold text-zinc-900 dark:text-white">
@@ -16,9 +17,11 @@ export function AnalysisViewer({ profile }: AnalysisViewerProps) {
 
             <div className="space-y-6">
                 <div>
-                    <h3 className="mb-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">Professional Summary</h3>
+                    <h3 className="mb-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                        Expected Salary
+                    </h3>
                     <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                        {profile.summary}
+                        {profile.expectedSalary}
                     </p>
                 </div>
 

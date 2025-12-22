@@ -110,7 +110,7 @@ function keywordTitleSearch(
 }
 
 /**
- * SECONDARY SEARCH: Skills matching in BENEFITS and other fields
+ * SECONDARY SEARCH: Skills matching in job fields (benefits, previewText, title, contact, companyHistory)
  */
 function skillBenefitsSearch(
   userSkills: string[],
@@ -118,15 +118,16 @@ function skillBenefitsSearch(
 ): SearchResult[] {
 
   const results = index.map(item => {
-    // Search primarily in benefits, then other fields
+    // Search in available JobThaiDetail fields
     const benefitsText = item.job.benefits?.toLowerCase() || "";
-    const descriptionText = item.job.description?.toLowerCase() || "";
-    const requirementsText = item.job.requirements?.toLowerCase() || "";
+    const previewText = item.job.previewText?.toLowerCase() || "";
     const titleText = item.job.title?.toLowerCase() || "";
+    const contactText = item.job.contact?.toLowerCase() || "";
+    const companyHistoryText = item.job.companyHistory?.toLowerCase() || "";
 
-    // Priority: benefits > requirements > description > title
+    // Priority: benefits (primary) > previewText, title, contact, companyHistory (secondary)
     const primaryText = benefitsText;
-    const secondaryText = `${requirementsText} ${descriptionText} ${titleText}`;
+    const secondaryText = `${previewText} ${titleText} ${contactText} ${companyHistoryText}`;
 
     const primarySkills = extractSkillsFromText(primaryText);
     const secondarySkills = extractSkillsFromText(secondaryText);

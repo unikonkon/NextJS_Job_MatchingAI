@@ -27,11 +27,15 @@ export async function getJobIndex(): Promise<IndexedJob[]> {
   const indexedJobs: IndexedJob[] = [];
 
   for (const job of jobsToIndex) {
+    // Use available fields from JobThaiDetail: previewText, title, companyHistory, benefits, contact
     const textToEmbed = `
       Title: ${job.title}
-      Description: ${job.description}
-      Requirements: ${job.requirements}
+      Preview: ${job.previewText}
+      Company: ${job.company}
+      Company History: ${job.companyHistory}
+      Benefits: ${job.benefits}
       Location: ${job.location}
+      Salary: ${job.salary}
     `.trim();
 
     const embedding = await generateEmbedding(textToEmbed);

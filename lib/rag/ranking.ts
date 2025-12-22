@@ -4,21 +4,21 @@ import { SearchResult } from "./search";
 import { normalizeSkill, extractSkillsFromText } from "./skills";
 
 // ============================================
-// KEYWORD-PRIORITY WEIGHT CONFIGURATION
+// PRIORITY WEIGHT CONFIGURATION
 // ============================================
 
-// Weights prioritizing KEYWORDS > SKILLS
+// Weights: Title (50%), Salary (35%), Skills (15%)
 const WEIGHTS = {
-  KEYWORD: 0.50,     // PRIMARY - Keywords in title
-  SKILL: 0.35,       // SECONDARY - Skills in benefits/requirements
-  SEMANTIC: 0.10,    // TERTIARY - Context matching
-  EXPERIENCE: 0.03,  // MINOR - Experience relevance
-  LOCATION: 0.01,    // MINOR - Location preference
-  SALARY: 0.01       // MINOR - Salary fit
+  KEYWORD: 0.50,     // PRIORITY 1 - Keywords in title (50%)
+  SALARY: 0.35,      // PRIORITY 2 - Salary matching (35%)
+  SKILL: 0.15,       // PRIORITY 3 - Skills in benefits/fields (15%)
+  SEMANTIC: 0.00,    // Not used in new priority model
+  EXPERIENCE: 0.00,  // Not used in new priority model
+  LOCATION: 0.00     // Not used in new priority model
 };
 
 /**
- * Rank results prioritizing KEYWORDS matching in title, then SKILLS
+ * Rank results with priority: Title (50%), Salary (35%), Skills (15%)
  */
 export function rankResults(searchResults: SearchResult[], profile: ResumeProfile): MatchResult[] {
   return searchResults.map(result => {
@@ -30,55 +30,45 @@ export function rankResults(searchResults: SearchResult[], profile: ResumeProfil
       job.title
     );
 
-    // ========== PRIORITY 2: SKILL MATCH (35%) ==========
+    // ========== PRIORITY 2: SALARY MATCH (35%) ==========
+    const salaryResult = calculateSalaryScore(
+      profile.expectedSalary,
+      job.salary
+    );
+
+    // ========== PRIORITY 3: SKILL MATCH (15%) ==========
     const skillResult = calculateSkillScore(
       profile.skills,
       job
     );
 
-    // ========== PRIORITY 3: EXPERIENCE MATCH (3%) ==========
-    let experienceScore = 0;
+    // Additional info for display (not used in scoring)
     const hasRoleMatch = profile.experience.some(exp =>
       job.title.toLowerCase().includes(exp.title.toLowerCase()) ||
       exp.title.toLowerCase().includes(job.title.toLowerCase())
     );
-    if (hasRoleMatch) experienceScore = 1;
-
-    // ========== PRIORITY 4: LOCATION MATCH (1%) ==========
     const locationMatch = (profile.preferredLocations?.length ?? 0) === 0 ||
       profile.preferredLocations?.some(loc =>
         job.location.includes(loc) || loc === "Any"
       ) ||
       job.location.includes("ไม่ระบุ");
-    const locationScore = locationMatch ? 1 : 0;
-
-    // ========== PRIORITY 5: SALARY MATCH (1%) ==========
-    const salaryMatch = !profile.expectedSalary ||
-      job.salary.includes(profile.expectedSalary) ||
-      job.salary.includes("ตามตกลง") ||
-      job.salary.includes("โครงสร้างบริษัท");
-    const salaryScore = salaryMatch ? 1 : 0;
 
     // ========== FINAL SCORE CALCULATION ==========
     const overallScore = (
       (keywordScore * WEIGHTS.KEYWORD) +
-      (skillResult.score * WEIGHTS.SKILL) +
-      (semanticScore * WEIGHTS.SEMANTIC) +
-      (experienceScore * WEIGHTS.EXPERIENCE) +
-      (locationScore * WEIGHTS.LOCATION) +
-      (salaryScore * WEIGHTS.SALARY)
+      (salaryResult.score * WEIGHTS.SALARY) +
+      (skillResult.score * WEIGHTS.SKILL)
     ) * 100; // Convert to 0-100
 
-    // Generate reasoning focused on keywords and skills
+    // Generate reasoning focused on title, salary, and skills
     const keywordCount = calculateKeywordMatches(profile.keywords || [], job.title);
     const skillCount = skillResult.matchedSkills.length;
     const totalSkills = skillResult.totalJobSkills;
 
     const reasoning = [
       keywordCount > 0 ? `พบคีย์เวิร์ดตรงกัน ${keywordCount}/${(profile.keywords || []).length} คำใน title` : null,
+      salaryResult.match ? `เงินเดือนเหมาะสม (${salaryResult.description})` : null,
       skillCount > 0 ? `พบทักษะตรงกัน ${skillCount}/${totalSkills} รายการ (${Math.round(skillResult.precision * 100)}%)` : null,
-      locationMatch ? "สถานที่ตรงกับต้องการ" : null,
-      hasRoleMatch ? "ประสบการณ์สอดคล้อง" : null
     ].filter(Boolean).join(" • ") || "พบความเหมาะสมในระดับพื้นฐาน";
 
     return {
@@ -86,9 +76,9 @@ export function rankResults(searchResults: SearchResult[], profile: ResumeProfil
       overallScore: Math.round(overallScore),
       skillMatch: Math.round(skillResult.score * 100),
       semanticMatch: Math.round(semanticScore * 100),
-      experienceMatch: Math.round(experienceScore * 100),
+      experienceMatch: hasRoleMatch ? 100 : 0,
       locationMatch,
-      salaryMatch,
+      salaryMatch: salaryResult.match,
       matchedSkills: skillResult.matchedSkills,
       missingSkills: skillResult.missingSkills,
       reasoning
@@ -138,8 +128,78 @@ function calculateKeywordScore(keywords: string[], jobTitle: string): number {
 }
 
 /**
- * Calculate skill matching score
- * Search in benefits (primary), then requirements/description (secondary)
+ * Calculate salary matching score (PRIORITY 2: 35%)
+ * Parse and compare salary ranges from JobThaiDetail
+ */
+function calculateSalaryScore(
+  expectedSalary: string | undefined | null,
+  jobSalary: string
+): {
+  score: number;
+  match: boolean;
+  description: string;
+} {
+  // If no expected salary, neutral score
+  if (!expectedSalary) {
+    return { score: 0.5, match: true, description: "ไม่ระบุเงินเดือนที่ต้องการ" };
+  }
+
+  // Parse expected salary (assume format like "25000" or "25,000")
+  const expectedAmount = parseInt(expectedSalary.replace(/[^\d]/g, ''), 10);
+  if (isNaN(expectedAmount)) {
+    return { score: 0.5, match: true, description: "ไม่สามารถอ่านเงินเดือนที่ต้องการได้" };
+  }
+
+  // Parse job salary range
+  const salaryLower = jobSalary.toLowerCase();
+
+  // Check if negotiable
+  if (salaryLower.includes("ตามตกลง") || salaryLower.includes("โครงสร้าง")) {
+    return { score: 0.7, match: true, description: "ตามตกลง" };
+  }
+
+  // Extract salary numbers from job salary string
+  const salaryNumbers = jobSalary.match(/\d{1,3}(?:,\d{3})*(?:\.\d+)?/g);
+  if (!salaryNumbers || salaryNumbers.length === 0) {
+    return { score: 0.5, match: true, description: "ไม่ระบุเงินเดือนชัดเจน" };
+  }
+
+  const amounts = salaryNumbers.map(s => parseInt(s.replace(/,/g, ''), 10));
+  const minSalary = Math.min(...amounts);
+  const maxSalary = Math.max(...amounts);
+
+  // Calculate score based on range overlap
+  if (expectedAmount >= minSalary && expectedAmount <= maxSalary) {
+    // Perfect match - expected salary within job range
+    return {
+      score: 1.0,
+      match: true,
+      description: `${minSalary.toLocaleString()}-${maxSalary.toLocaleString()} บาท`
+    };
+  } else if (expectedAmount < minSalary) {
+    // Expected lower than job offers - still good match
+    const diff = minSalary - expectedAmount;
+    const score = Math.max(0.6, 1.0 - (diff / expectedAmount) * 0.5);
+    return {
+      score,
+      match: true,
+      description: `สูงกว่าที่คาดหวัง (${minSalary.toLocaleString()}-${maxSalary.toLocaleString()} บาท)`
+    };
+  } else {
+    // Expected higher than job offers - poor match
+    const diff = expectedAmount - maxSalary;
+    const score = Math.max(0.2, 1.0 - (diff / maxSalary) * 0.8);
+    return {
+      score,
+      match: false,
+      description: `ต่ำกว่าที่คาดหวัง (${minSalary.toLocaleString()}-${maxSalary.toLocaleString()} บาท)`
+    };
+  }
+}
+
+/**
+ * Calculate skill matching score (PRIORITY 3: 15%)
+ * Search in benefits (primary), then previewText, title, contact, companyHistory (secondary)
  */
 function calculateSkillScore(
   userSkills: string[],
@@ -153,15 +213,16 @@ function calculateSkillScore(
 } {
   const normalizedUserSkills = userSkills.map(normalizeSkill);
 
-  // Extract skills from job fields with priority
+  // Extract skills from JobThaiDetail fields with priority
   const benefitsText = job.benefits?.toLowerCase() || "";
-  const requirementsText = job.requirements?.toLowerCase() || "";
-  const descriptionText = job.description?.toLowerCase() || "";
+  const previewText = job.previewText?.toLowerCase() || "";
   const titleText = job.title?.toLowerCase() || "";
+  const contactText = job.contact?.toLowerCase() || "";
+  const companyHistoryText = job.companyHistory?.toLowerCase() || "";
 
   const benefitsSkills = extractSkillsFromText(benefitsText);
   const otherSkills = extractSkillsFromText(
-    `${requirementsText} ${descriptionText} ${titleText}`
+    `${previewText} ${titleText} ${contactText} ${companyHistoryText}`
   );
 
   // Count matches with priority weighting

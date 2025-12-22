@@ -1,37 +1,15 @@
 import fs from "fs";
 import path from "path";
+import { JobThaiDetail, JobThai } from "@/data/JobThai/type";
 
-// Define the Job interface based on the JSON structure
-export interface Job {
-  id: string;
-  url: string;
-  previewText: string;
-  title: string;
-  company: string;
-  companyLogo: string;
-  location: string;
-  salary: string;
-  description: string;
-  requirements: string;
-  benefits: string;
-  jobUrl: string;
-  postedDate: string;
-  scrapedAt: string;
-
+// Use JobThaiDetail type with parsed fields
+export interface Job extends JobThaiDetail {
   // Parsed fields
   parsedDate?: Date;
   minSalary?: number;
   maxSalary?: number;
 }
 
-interface JobsData {
-  metadata: {
-    totalJobs: number;
-    lastUpdated: string;
-    version: string;
-  };
-  jobs: Job[];
-}
 
 // Helper to parse Thai date string "2 ธ.ค. 68" -> Date object
 function parseThaiDate(dateStr: string): Date | undefined {
@@ -116,7 +94,7 @@ function parseSalary(salaryStr: string): { min?: number; max?: number } {
 export async function getJobs(): Promise<Job[]> {
   const filePath = path.join(process.cwd(), "data/JobThai/jobs.json");
   const fileContents = fs.readFileSync(filePath, "utf8");
-  const data: JobsData = JSON.parse(fileContents);
+  const data: JobThai = JSON.parse(fileContents);
 
   return data.jobs
     .map((job) => {
