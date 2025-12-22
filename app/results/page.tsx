@@ -12,6 +12,8 @@ import { getProfile, saveMatches, getMatches, deleteHistoryItem } from "@/lib/db
 import { AnalysisViewer } from "@/components/results/AnalysisViewer";
 import { DeleteConfirmModal } from "@/components/common/DeleteConfirmModal";
 import { Eye, Trash2, X, User, Mail, Phone, MapPin, DollarSign, GraduationCap, Briefcase } from "lucide-react";
+import { searchJobs } from "@/lib/rag/search-client";
+import { rankResults } from "@/lib/rag/ranking-client";
 
 function ResultsContent() {
     const router = useRouter();
@@ -23,6 +25,8 @@ function ResultsContent() {
     const [showModal, setShowModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [loadingStatus, setLoadingStatus] = useState<string>("Loading profile...");
+    const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
 
     useEffect(() => {
         const loadData = async () => {
@@ -33,6 +37,7 @@ function ResultsContent() {
 
             try {
                 // 1. Get profile from IndexedDB
+                setLoadingStatus("Loading profile...");
                 const cachedData = await getProfile(id);
 
                 if (!cachedData || !cachedData.profile) {
@@ -50,25 +55,45 @@ function ResultsContent() {
                     setLoading(false);
                     return;
                 }
+                
+                // ยังไม่ได้ใช้ server-side embeddings เพราะมีปัญหาเรื่อง Edge Runtime ใน vercel ไม่รองรับ 
+                // ดังนั้นเราจึงใช้ client-side embeddings แทน
+                //   // 2. Fetch matches using the profile
+                //   const response = await fetch("/api/match", {
+                //     method: "POST",
+                //     headers: { "Content-Type": "application/json" },
+                //     body: JSON.stringify({ profile: currentProfile, limit: 10 }),
+                // });
 
-                // 2. Fetch matches using the profile
-                const response = await fetch("/api/match", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ profile: currentProfile, limit: 10 }),
-                });
+                // 2. Search jobs using client-side embeddings
+                setLoadingStatus("Loading AI model and building job index...");
 
-                if (!response.ok) throw new Error("Failed to fetch matches");
+                const searchResults = await searchJobs(
+                    currentProfile,
+                    50,
+                    (current, total) => {
+                        setProgress({ current, total });
+                        setLoadingStatus(`Building job index... ${current}/${total}`);
+                    }
+                );
 
-                const data = await response.json();
-                setMatches(data.matches);
+                // 3. Rank results
+                setLoadingStatus("Ranking results...");
+                setProgress(null);
+                const rankedMatches = rankResults(searchResults, currentProfile);
+
+                // 4. Take top 10
+                const topMatches = rankedMatches.slice(0, 10);
+                setMatches(topMatches);
 
                 // Save matches
-                await saveMatches(id, data.matches);
+                await saveMatches(id, topMatches);
             } catch (error) {
-                console.error(error);
+                console.error("Matching error:", error);
+                setLoadingStatus("Error: Failed to match jobs");
             } finally {
                 setLoading(false);
+                setProgress(null);
             }
         };
 
@@ -97,7 +122,20 @@ function ResultsContent() {
                 <Header />
                 <div className="flex h-[calc(100vh-64px)] flex-col items-center justify-center space-y-4 pt-32">
                     <Loading />
-                    <p className="text-muted-foreground animate-pulse">Finding best matches for you...</p>
+                    <p className="text-muted-foreground animate-pulse">{loadingStatus}</p>
+                    {progress && (
+                        <div className="w-64">
+                            <div className="h-2 w-full bg-zinc-200 rounded-full overflow-hidden dark:bg-zinc-800">
+                                <div
+                                    className="h-full bg-blue-600 transition-all duration-300 dark:bg-blue-500"
+                                    style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                                />
+                            </div>
+                            <p className="text-xs text-muted-foreground text-center mt-2">
+                                {progress.current} / {progress.total} jobs indexed
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         );

@@ -53,11 +53,14 @@ export function Hero() {
                 body: formData,
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                throw new Error("Analysis failed. Please try again.");
+                // Use error message from API if available
+                const errorMessage = data.error || "Analysis failed. Please try again.";
+                throw new Error(errorMessage);
             }
 
-            const data = await response.json();
             const newProfile: ResumeProfile = data.profile;
             setProfile(newProfile);
             console.log("Profile: ", newProfile);
@@ -71,9 +74,10 @@ export function Hero() {
             // Auto-redirect removed to allow review
             // router.push(`/results?id=${id}`);
 
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            setError("Something went wrong. Please try again.");
+            const errorMessage = err?.message || "Something went wrong. Please try again.";
+            setError(errorMessage);
             setUploadStep(null);
         }
     };

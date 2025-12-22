@@ -38,8 +38,19 @@ export async function analyzeResume(pdfBase64: string, mimeType: string = "appli
     const profile = JSON.parse(jsonString) as ResumeProfile;
     
     return profile;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error analyzing resume with Gemini:", error);
+
+    // Check for rate limit error (429)
+    if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('Too Many Requests')) {
+      throw new Error("RATE_LIMIT_EXCEEDED");
+    }
+
+    // Check for quota exceeded
+    if (error?.message?.includes('quota') || error?.message?.includes('RESOURCE_EXHAUSTED')) {
+      throw new Error("QUOTA_EXCEEDED");
+    }
+
     throw new Error("Failed to analyze resume");
   }
 }

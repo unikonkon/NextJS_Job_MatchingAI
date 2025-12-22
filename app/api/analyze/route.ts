@@ -30,10 +30,33 @@ export async function POST(req: NextRequest) {
     const profile = await analyzeResume(base64, file.type);
 
     return NextResponse.json({ profile });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Analysis error:", error);
+
+    // Handle rate limit errors
+    if (error?.message === "RATE_LIMIT_EXCEEDED") {
+      return NextResponse.json(
+        {
+          error: "เรียกใช้บริการมากเกินไป กรุณารอสักครู่แล้วลองใหม่อีกครั้ง (Rate Limit API Gemini)",
+          code: "RATE_LIMIT_EXCEEDED"
+        },
+        { status: 429 }
+      );
+    }
+
+    // Handle quota exceeded
+    if (error?.message === "QUOTA_EXCEEDED") {
+      return NextResponse.json(
+        {
+          error: "ใช้ API เกินโควต้า กรุณาลองใหม่อีกครั้งในภายหลัง",
+          code: "QUOTA_EXCEEDED"
+        },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json(
-      { error: "Failed to analyze resume" },
+      { error: "Failed to analyze resume. Please try again." },
       { status: 500 }
     );
   }
