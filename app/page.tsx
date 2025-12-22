@@ -14,7 +14,7 @@ export default async function Home() {
   return (
     <div className="relative min-h-screen bg-zinc-50 dark:bg-black">
       {/* Floating Lines Background */}
-      <div className="fixed inset-0 z-0 opacity-35">
+      <div className="fixed inset-0 z-0 opacity-30">
         <FloatingLines
           linesGradient={["#3b82f6", "#60a5fa", "#93c5fd"]}
           enabledWaves={["top", "middle", "bottom"]}

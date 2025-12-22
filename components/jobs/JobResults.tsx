@@ -20,8 +20,8 @@ export async function JobResults({ params }: JobResultsProps) {
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between pb-4">
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <div className="flex items-center justify-between">
+                <p className="text-md text-zinc-500 dark:text-zinc-400">
                     Showing <span className="font-medium text-zinc-900 dark:text-white">{jobs.length}</span> jobs
                 </p>
             </div>

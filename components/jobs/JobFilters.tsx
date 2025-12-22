@@ -14,6 +14,7 @@ export function JobFilters() {
     const [location, setLocation] = useState(searchParams.get("location") || "");
     const [minSalary, setMinSalary] = useState(searchParams.get("minSalary") || "");
     const [maxSalary, setMaxSalary] = useState(searchParams.get("maxSalary") || "");
+    const [noSalarySpec, setNoSalarySpec] = useState(searchParams.get("noSalarySpec") === "true");
 
     // Sync state with URL params when they change (e.g. navigation)
     useEffect(() => {
@@ -21,6 +22,7 @@ export function JobFilters() {
         setLocation(searchParams.get("location") || "");
         setMinSalary(searchParams.get("minSalary") || "");
         setMaxSalary(searchParams.get("maxSalary") || "");
+        setNoSalarySpec(searchParams.get("noSalarySpec") === "true");
     }, [searchParams]);
 
     const handleSearch = () => {
@@ -38,6 +40,9 @@ export function JobFilters() {
         if (maxSalary) params.set("maxSalary", maxSalary);
         else params.delete("maxSalary");
 
+        if (noSalarySpec) params.set("noSalarySpec", "true");
+        else params.delete("noSalarySpec");
+
         router.push(`${pathname}?${params.toString()}`);
     };
 
@@ -46,10 +51,11 @@ export function JobFilters() {
         setLocation("");
         setMinSalary("");
         setMaxSalary("");
+        setNoSalarySpec(false);
         router.push(pathname);
     };
 
-    const hasFilters = query || location || minSalary || maxSalary;
+    const hasFilters = query || location || minSalary || maxSalary || noSalarySpec;
 
     return (
         <div className="space-y-6 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
@@ -135,6 +141,23 @@ export function JobFilters() {
                             className="w-full rounded-lg border border-zinc-200 bg-white py-2 pl-9 pr-3 text-sm placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-white dark:focus:border-blue-500"
                         />
                     </div>
+                </div>
+
+                {/* No Salary Specified */}
+                <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/30">
+                    <input
+                        type="checkbox"
+                        id="noSalarySpec"
+                        checked={noSalarySpec}
+                        onChange={(e) => setNoSalarySpec(e.target.checked)}
+                        className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800"
+                    />
+                    <label
+                        htmlFor="noSalarySpec"
+                        className="text-sm font-medium text-zinc-700 dark:text-zinc-300 cursor-pointer select-none"
+                    >
+                        ไม่ระบุเงินเดือน
+                    </label>
                 </div>
 
                 <button

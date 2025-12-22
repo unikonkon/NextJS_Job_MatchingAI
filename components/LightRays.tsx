@@ -293,11 +293,16 @@ void main() {
       meshRef.current = mesh;
 
       const updatePlacement = () => {
-        if (!containerRef.current || !renderer) return;
+        const container = containerRef.current;
+        if (!container || !renderer || !uniforms) return;
 
         renderer.dpr = Math.min(window.devicePixelRatio, 2);
 
-        const { clientWidth: wCSS, clientHeight: hCSS } = containerRef.current;
+        const wCSS = container.clientWidth;
+        const hCSS = container.clientHeight;
+        
+        if (wCSS === 0 || hCSS === 0) return;
+
         renderer.setSize(wCSS, hCSS);
 
         const dpr = renderer.dpr;
@@ -312,7 +317,11 @@ void main() {
       };
 
       const loop = (t: number) => {
-        if (!rendererRef.current || !uniformsRef.current || !meshRef.current) {
+        const renderer = rendererRef.current;
+        const uniforms = uniformsRef.current;
+        const mesh = meshRef.current;
+        
+        if (!renderer || !uniforms || !mesh) {
           return;
         }
 
@@ -395,10 +404,11 @@ void main() {
   ]);
 
   useEffect(() => {
-    if (!uniformsRef.current || !containerRef.current || !rendererRef.current) return;
-
+    const container = containerRef.current;
     const u = uniformsRef.current;
     const renderer = rendererRef.current;
+    
+    if (!u || !container || !renderer) return;
 
     u.raysColor.value = hexToRgb(raysColor);
     u.raysSpeed.value = raysSpeed;
@@ -411,7 +421,11 @@ void main() {
     u.noiseAmount.value = noiseAmount;
     u.distortion.value = distortion;
 
-    const { clientWidth: wCSS, clientHeight: hCSS } = containerRef.current;
+    const wCSS = container.clientWidth;
+    const hCSS = container.clientHeight;
+    
+    if (wCSS === 0 || hCSS === 0) return;
+    
     const dpr = renderer.dpr;
     const { anchor, dir } = getAnchorAndDir(raysOrigin, wCSS * dpr, hCSS * dpr);
     u.rayPos.value = anchor;
@@ -448,7 +462,7 @@ void main() {
   return (
     <div
       ref={containerRef}
-      className={`w-full h-full pointer-events-none z-[3] overflow-hidden relative ${className}`.trim()}
+      className={`w-full h-full pointer-events-none z-3 overflow-hidden relative ${className}`.trim()}
     />
   );
 };

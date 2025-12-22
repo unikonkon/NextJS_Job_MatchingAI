@@ -9,6 +9,7 @@ import { UploadProgress } from "@/components/upload/UploadProgress";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { ResumeProfile } from "@/types/resume";
 import { saveProfile } from "@/lib/db";
+import { ShineBorder } from "@/components/ui/shine-border";
 
 import { AnalysisViewer } from "@/components/results/AnalysisViewer";
 
@@ -99,9 +100,7 @@ export function Hero() {
                         </p>
                     </div>
 
-                    <AnalysisViewer profile={profile} />
-
-                    <div className="flex justify-center gap-4 pt-4">
+                    <div className="flex justify-center gap-4 ">
                         <button
                             onClick={handleRemoveFile}
                             className="px-6 py-3 rounded-xl border border-zinc-200 text-zinc-600 font-medium hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900"
@@ -116,6 +115,8 @@ export function Hero() {
                             <ArrowRight className="h-5 w-5" />
                         </button>
                     </div>
+                    <AnalysisViewer profile={profile} />
+
                 </div>
             </div>
         );
@@ -132,33 +133,40 @@ export function Hero() {
                 </p>
             </div>
 
-            <div className="w-full max-w-xl space-y-8">
-                {!file ? (
-                    <DropZone onFileSelect={handleFileSelect} />
-                ) : (
-                    <div className="space-y-6">
-                        <FilePreview file={file} onRemove={handleRemoveFile} />
+            <ShineBorder
+                className="w-full max-w-xl"
+                shineColor={["#3b82f6", "#60a5fa", "#93c5fd"]}
+                borderWidth={1}
+                duration={14}
+            >
+                <div className="w-full space-y-8 p-0.5">
+                    {!file ? (
+                        <DropZone onFileSelect={handleFileSelect} />
+                    ) : (
+                        <div className="space-y-6">
+                            <FilePreview file={file} onRemove={handleRemoveFile} />
 
-                        {!uploadStep && (
-                            <button
-                                onClick={handleUpload}
-                                className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-8 py-4 text-base font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-blue-500/25 active:scale-[0.98] dark:bg-blue-600 dark:hover:bg-blue-500"
-                            >
-                                Analyze & Find Jobs
-                                <ArrowRight className="h-5 w-5" />
-                            </button>
-                        )}
-                    </div>
-                )}
+                            {!uploadStep && (
+                                <button
+                                    onClick={handleUpload}
+                                    className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-8 py-4 text-base font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-blue-500/25 active:scale-[0.98] dark:bg-blue-600 dark:hover:bg-blue-500"
+                                >
+                                    Analyze & Find Jobs
+                                    <ArrowRight className="h-5 w-5" />
+                                </button>
+                            )}
+                        </div>
+                    )}
 
-                {uploadStep && <UploadProgress step={uploadStep} />}
+                    {uploadStep && <UploadProgress step={uploadStep} />}
 
-                {error && (
-                    <div className="p-4 rounded-lg bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 text-center text-sm font-medium">
-                        {error}
-                    </div>
-                )}
-            </div>
+                    {error && (
+                        <div className="p-4 rounded-lg bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 text-center text-sm font-medium">
+                            {error}
+                        </div>
+                    )}
+                </div>
+            </ShineBorder>
         </div>
     );
 }

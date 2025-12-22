@@ -37,7 +37,7 @@ export function DropZone({ onFileSelect, isUploading = false }: DropZoneProps) {
             <div
                 {...getRootProps()}
                 className={cn(
-                    "relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-10 transition-all duration-200 ease-in-out cursor-pointer",
+                    "relative flex flex-col items-center justify-center rounded-2xl p-8 transition-all duration-200 ease-in-out cursor-pointer",
                     isDragActive
                         ? "border-blue-500 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-950/20"
                         : "border-zinc-200 bg-zinc-50/50 hover:bg-zinc-100 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:bg-zinc-900",
@@ -45,7 +45,7 @@ export function DropZone({ onFileSelect, isUploading = false }: DropZoneProps) {
                 )}
             >
                 <input {...getInputProps()} />
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 mb-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30 mb-4">
                     <Upload className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="text-center space-y-2">

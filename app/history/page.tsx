@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Header } from "@/components/common/Header";
+import { DeleteConfirmModal } from "@/components/common/DeleteConfirmModal";
 import { getAllHistory, deleteHistoryItem } from "@/lib/db";
 import { ResumeProfile } from "@/types/resume";
 import { Trash2, ExternalLink, Calendar, Briefcase, FileText } from "lucide-react";
@@ -16,6 +17,8 @@ interface HistoryItem {
 export default function HistoryPage() {
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         loadHistory();
@@ -34,16 +37,25 @@ export default function HistoryPage() {
         }
     };
 
-    const handleDelete = async (id: string, e: React.MouseEvent) => {
-        e.preventDefault(); // Prevent navigation if button is inside link (though it isn't here)
-        if (!confirm("Are you sure you want to delete this history item?")) return;
+    const handleDeleteClick = (id: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDeleteTargetId(id);
+    };
 
+    const handleDeleteConfirm = async () => {
+        if (!deleteTargetId) return;
+
+        setDeleting(true);
         try {
-            await deleteHistoryItem(id);
-            setHistory(prev => prev.filter(item => item.id !== id));
+            await deleteHistoryItem(deleteTargetId);
+            setHistory(prev => prev.filter(item => item.id !== deleteTargetId));
+            setDeleteTargetId(null);
         } catch (error) {
             console.error("Failed to delete item:", error);
-            alert("Failed to delete item");
+            alert("ไม่สามารถลบข้อมูลได้ กรุณาลองอีกครั้ง");
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -70,7 +82,7 @@ export default function HistoryPage() {
                         </p>
                         <Link
                             href="/"
-                            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                         >
                             Upload Resume
                         </Link>
@@ -116,7 +128,7 @@ export default function HistoryPage() {
 
                                 <div className="mt-6 flex items-center justify-between gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
                                     <button
-                                        onClick={(e) => handleDelete(item.id, e)}
+                                        onClick={(e) => handleDeleteClick(item.id, e)}
                                         className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
                                     >
                                         <Trash2 className="h-4 w-4" />
@@ -135,6 +147,17 @@ export default function HistoryPage() {
                     </div>
                 )}
             </main>
+
+            {/* Delete Confirmation Modal */}
+            <DeleteConfirmModal
+                isOpen={deleteTargetId !== null}
+                onClose={() => setDeleteTargetId(null)}
+                onConfirm={handleDeleteConfirm}
+                isDeleting={deleting}
+                title="ยืนยันการลบ"
+                description="คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?"
+                warningMessage="การลบข้อมูลนี้จะทำให้ข้อมูลโปรไฟล์และผลการแมตช์งานถูกลบออกจากระบบทั้งหมด และไม่สามารถกู้คืนได้"
+            />
         </div>
     );
 }

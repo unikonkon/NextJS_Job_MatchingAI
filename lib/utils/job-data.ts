@@ -119,6 +119,7 @@ export type JobFilterParams = {
   location?: string;
   minSalary?: number;
   maxSalary?: number;
+  noSalarySpec?: boolean;
 };
 
 export async function getFilteredJobs(params: JobFilterParams): Promise<Job[]> {
@@ -143,7 +144,17 @@ export async function getFilteredJobs(params: JobFilterParams): Promise<Job[]> {
       }
     }
 
-    // 3. Min Salary
+    // 3. No Salary Specified Filter
+    // If user wants ONLY jobs with no salary info, filter for those
+    if (params.noSalarySpec) {
+      if (job.minSalary || job.maxSalary) {
+        return false; // Exclude jobs that have salary info
+      }
+      // If this filter is active, skip other salary filters
+      return true;
+    }
+
+    // 4. Min Salary
     // If job has minSalary, check if it's >= param.minSalary
     // If job has maxSalary but no min, assume it might fall in range?
     // Let's stick to strict: if user wants 20k, job must explicitly have a min >= 20k or max >= 20k.

@@ -23,9 +23,10 @@ export default async function JobsPage({
     const minSalary = minSalaryStr ? parseInt(minSalaryStr, 10) : undefined;
     const maxSalaryStr = typeof params.maxSalary === 'string' ? params.maxSalary : undefined;
     const maxSalary = maxSalaryStr ? parseInt(maxSalaryStr, 10) : undefined;
+    const noSalarySpec = params.noSalarySpec === 'true';
 
     // Use a unique key based on params to force Suspense to re-trigger
-    const suspenseKey = JSON.stringify({ query, location, minSalary, maxSalary });
+    const suspenseKey = JSON.stringify({ query, location, minSalary, maxSalary, noSalarySpec });
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-black">
@@ -52,7 +53,7 @@ export default async function JobsPage({
                     {/* Job List */}
                     <div className="flex-1 min-h-[500px]">
                         <Suspense key={suspenseKey} fallback={<JobsSkeletonList />}>
-                            <JobResults params={{ query, location, minSalary, maxSalary }} />
+                            <JobResults params={{ query, location, minSalary, maxSalary, noSalarySpec }} />
                         </Suspense>
                     </div>
                 </div>
